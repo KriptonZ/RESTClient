@@ -2,6 +2,10 @@
 
 #include <QMainWindow>
 
+class QListWidget;
+class NetworkManager;
+struct UserInfo;
+
 class MainWindow : public QMainWindow
 {
 	Q_OBJECT
@@ -9,4 +13,14 @@ class MainWindow : public QMainWindow
 public:
 	MainWindow(QWidget *parent = nullptr);
 	~MainWindow();
+
+private slots:
+	void onUsersReceived(const QList<UserInfo>& usersList);
+
+private:
+	void initLayout();
+
+	QListWidget* mUsersList = nullptr;
+
+	NetworkManager* mNetManager = nullptr;
 };
