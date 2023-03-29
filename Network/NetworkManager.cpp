@@ -56,8 +56,13 @@ void NetworkManager::onFinishedReading(QNetworkReply *reply)
 		if(header == "application/json")
 		{
 			QList<UserInfo> usersList;
-			QJsonObject userJsonInfo = QJsonDocument::fromJson(reply->readAll()).object();
-			QJsonArray users = userJsonInfo.value("users").toArray();
+			QJsonObject replyJsonInfo = QJsonDocument::fromJson(reply->readAll()).object();
+			bool noContentFollowing = replyJsonInfo.value("links").toObject().value("next_url").isNull();
+			if(noContentFollowing)
+			{
+				emit noMoreContent();
+			}
+			QJsonArray users = replyJsonInfo.value("users").toArray();
 			for(const auto& user : users)
 			{
 				usersList.append(UserInfo(user.toObject()));

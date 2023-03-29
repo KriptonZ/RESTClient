@@ -54,7 +54,7 @@ void UserInfoWidget::initLayout()
 
 	auto hLayout = new QHBoxLayout();
 	hLayout->addWidget(mPhoto);
-	hLayout->addLayout(vLayout);
+	hLayout->addLayout(vLayout, Qt::AlignLeft);
 
 	setLayout(hLayout);
 

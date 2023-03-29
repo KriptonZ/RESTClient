@@ -1,8 +1,9 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QListWidget>
+#include <QPushButton>
 
-class QListWidget;
 class NetworkManager;
 struct UserInfo;
 
@@ -17,10 +18,14 @@ public:
 private slots:
 	void onUsersReceived(const QList<UserInfo>& usersList);
 
+	void onShowMoreClicked();
+
 private:
 	void initLayout();
 
+	int mCurrentPage = 0;
 	QListWidget* mUsersList = nullptr;
+	QPushButton* mShowMoreButton = nullptr;
 
 	NetworkManager* mNetManager = nullptr;
 };

@@ -22,6 +22,7 @@ signals:
 	void userReceived();
 	void positionsReceived();
 	void imageReceived(const QUrl& url, const QByteArray& byteArray);
+	void noMoreContent();
 
 private slots:
 	void onFinishedReading(QNetworkReply *reply);
