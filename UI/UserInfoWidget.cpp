@@ -1,7 +1,6 @@
 #include "UserInfoWidget.hpp"
 #include "Data/UserInfo.hpp"
 #include "Network/NetworkManager.hpp"
-
 #include <QHBoxLayout>
 #include <QVBoxLayout>
 

@@ -13,7 +13,8 @@ NetworkManager::NetworkManager(QObject *parent)
 
 void NetworkManager::getToken()
 {
-
+	QNetworkRequest request(QUrl(QString(BaseUrl + "/token")));
+	mNetworkAccessManager->get(request);
 }
 
 void NetworkManager::getUsers(const int page, const int count)
@@ -34,7 +35,8 @@ void NetworkManager::getUser(int id)
 
 void NetworkManager::getPositions()
 {
-
+	QNetworkRequest request(QUrl(QString(BaseUrl + "/positions")));
+	mNetworkAccessManager->get(request);
 }
 
 void NetworkManager::getImage(const QString &url)
@@ -55,20 +57,38 @@ void NetworkManager::onFinishedReading(QNetworkReply *reply)
 		auto header = reply->header(QNetworkRequest::ContentTypeHeader).toString();
 		if(header == "application/json")
 		{
-			QList<UserInfo> usersList;
 			QJsonObject replyJsonInfo = QJsonDocument::fromJson(reply->readAll()).object();
-			bool noContentFollowing = replyJsonInfo.value("links").toObject().value("next_url").isNull();
-			if(noContentFollowing)
+			if(replyJsonInfo.contains("token"))
 			{
-				emit noMoreContent();
+				emit tokenReceived(replyJsonInfo.value("token").toString());
 			}
-			QJsonArray users = replyJsonInfo.value("users").toArray();
-			for(const auto& user : users)
+			else if(replyJsonInfo.contains("positions"))
 			{
-				usersList.append(UserInfo(user.toObject()));
-			}
+				QJsonArray positions = replyJsonInfo.value("positions").toArray();
+				QList<QString> positionsList;
+				for(const auto& position : positions)
+				{
+					positionsList.append(position.toObject().value("name").toString());
+				}
 
-			emit usersReceived(usersList);
+				emit positionsReceived(positionsList);
+			}
+			else if(replyJsonInfo.contains("users"))
+			{
+				bool noContentFollowing = replyJsonInfo.value("links").toObject().value("next_url").isNull();
+				if(noContentFollowing)
+				{
+					emit noMoreContent();
+				}
+				QJsonArray users = replyJsonInfo.value("users").toArray();
+				QList<UserInfo> usersList;
+				for(const auto& user : users)
+				{
+					usersList.append(UserInfo(user.toObject()));
+				}
+
+				emit usersReceived(usersList);
+			}
 		}
 		else if(header == "image/jpeg")
 		{

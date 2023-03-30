@@ -18,9 +18,10 @@ public:
 	void getImage(const QString& url);
 
 signals:
+	void tokenReceived(const QString& token);
 	void usersReceived(const QList<UserInfo>& users);
 	void userReceived();
-	void positionsReceived();
+	void positionsReceived(const QList<QString>& positions);
 	void imageReceived(const QUrl& url, const QByteArray& byteArray);
 	void noMoreContent();
 
