@@ -8,6 +8,7 @@ class QListWidget;
 class QPushButton;
 class QLineEdit;
 class QGroupBox;
+class QRadioButton;
 
 class MainWindow : public QMainWindow
 {
@@ -20,7 +21,7 @@ public:
 private slots:
 	void onTokenReceived(const QString& token);
 	void onUsersReceived(const QList<UserInfo>& usersList);
-	void onPositionsReceived(const QList<QString>& positionsList);
+	void onPositionsReceived(const QMap<int, QString>& positionsList);
 
 	void onShowMoreClicked();
 	void onUploadClicked();
@@ -42,7 +43,7 @@ private:
 	QLineEdit* mEmailEditor = nullptr;
 	QLineEdit* mPhoneEditor = nullptr;
 	QGroupBox* mPositionList = nullptr;
-	QString mSelectedPosition;
+	QRadioButton* mSelectedPosition = nullptr;
 	QLineEdit* mPhotoPathEditor = nullptr;
 	QPushButton* mAddUserButton = nullptr;
 

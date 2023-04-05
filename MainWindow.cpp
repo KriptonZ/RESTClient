@@ -23,6 +23,7 @@ MainWindow::MainWindow(QWidget *parent)
 	initLayout();	
 
 	connect(mNetManager, &NetworkManager::usersReceived, this, &MainWindow::onUsersReceived);
+	connect(mNetManager, &NetworkManager::tokenReceived, this, &MainWindow::onTokenReceived);
 	mNetManager->getUsers(++mCurrentPage);
 }
 
@@ -33,6 +34,13 @@ MainWindow::~MainWindow()
 void MainWindow::onTokenReceived(const QString &token)
 {
 	mToken = token;
+	QVariantMap data;
+	data.insert("name", mNameEditor->text());
+	data.insert("email", mEmailEditor->text());
+	data.insert("phone", mPhoneEditor->text());
+	data.insert("position_id", mSelectedPosition->property("id").toInt());
+
+	mNetManager->postUser(token, data, mPhotoPathEditor->text());
 }
 
 void MainWindow::onUsersReceived(const QList<UserInfo> &usersList)
@@ -49,18 +57,19 @@ void MainWindow::onUsersReceived(const QList<UserInfo> &usersList)
 	}
 }
 
-void MainWindow::onPositionsReceived(const QList<QString> &positionsList)
+void MainWindow::onPositionsReceived(const QMap<int, QString> &positionsList)
 {
 	auto vLayout = new QVBoxLayout();
-	for(const auto& pos : positionsList)
+	for(const auto& pos : positionsList.keys())
 	{
-		auto radioButton = new QRadioButton(pos, this);
+		auto radioButton = new QRadioButton(positionsList[pos], this);
+		radioButton->setProperty("id", pos);
 		vLayout->addWidget(radioButton);
 		connect(radioButton, &QRadioButton::toggled, this, [this, radioButton](bool checked)
 		{
 			if(checked)
 			{
-				mSelectedPosition = radioButton->text();
+				mSelectedPosition = radioButton;
 			}
 		});
 	}
@@ -76,7 +85,7 @@ void MainWindow::onShowMoreClicked()
 void MainWindow::onUploadClicked()
 {
 	auto filePath = QFileDialog::getOpenFileName(this, "Load photo", QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
-												 "Images (*.png *.jpg);;All files (*)");
+												 "Images (*.jpeg *.jpg);;All files (*)");
 	if(filePath.isEmpty())
 	{
 		return;
@@ -118,12 +127,16 @@ void MainWindow::initLayout()
 	auto emailLabel = new QLabel("Email", this);
 	mEmailEditor = new QLineEdit(this);
 	mEmailEditor->setPlaceholderText("john.smith@maildomain.com");
-	mEmailEditor->setValidator(new QRegExpValidator(QRegExp("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$"), this));
+	mEmailEditor->setValidator(new QRegExpValidator(QRegExp("^(?:[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)"
+															"*|\"(?:[\\x01-\\x08\\x0b\\x0c\\x0e-\\x1f\\x21\\x23-\\x5b\\x5d-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])*\")"
+															"@(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)"
+															"+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?|\\[(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\\.){3}"
+															"(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?|[a-z0-9-]*[a-z0-9]:(?:[\\x01-\\x08\x0b\\x0c\\x0e-\\x1f\\x21-\\x5a\\x53-\\x7f]|\\\\[\\x01-\\x09\\x0b\\x0c\\x0e-\\x7f])+)\\])$"), this));
 
 	auto phoneLabel = new QLabel("Phone", this);
 	mPhoneEditor = new QLineEdit(this);
 	mPhoneEditor->setPlaceholderText("+38 XXX XXXXXXX");
-	mPhoneEditor->setValidator(new QRegExpValidator(QRegExp("^\\+38\\d{10}$"), this));
+	mPhoneEditor->setValidator(new QRegExpValidator(QRegExp("^[\\+]{0,1}380([0-9]{9})$"), this));
 
 	auto positionLabel = new QLabel("Position", this);
 	mPositionList = new QGroupBox(this);
@@ -176,10 +189,10 @@ QStringList MainWindow::validate()
 {
 	QStringList errors;
 
-	if(mNameEditor->text().isEmpty())
+	if(mNameEditor->text().length() < 2 || mNameEditor->text().length() > 60)
 	{
 		mNameEditor->setStyleSheet(InvalidInputStyle);
-		errors << "Name can't be empty";
+		errors << "Username should contain 2-60 characters";
 	}
 	if(!mEmailEditor->hasAcceptableInput())
 	{
@@ -195,6 +208,15 @@ QStringList MainWindow::validate()
 	{
 		mPhotoPathEditor->setStyleSheet(InvalidInputStyle);
 		errors << "Choose the photo";
+	}
+	else
+	{
+		QFileInfo fi(mPhotoPathEditor->text());
+		if(fi.size() > 5 * 1024 * 1024)
+		{
+			mPhotoPathEditor->setStyleSheet(InvalidInputStyle);
+			errors << "The photo size must not be greater than 5 Mb";
+		}
 	}
 
 	return errors;

@@ -12,7 +12,7 @@ public:
 
 	void getToken();
 	void getUsers(const int page = 1, const int count = 6);
-	void postUsers();
+	void postUser(const QString& token, const QVariantMap& data, const QString& imageFilePath);
 	void getUser(int id);
 	void getPositions();
 	void getImage(const QString& url);
@@ -21,7 +21,7 @@ signals:
 	void tokenReceived(const QString& token);
 	void usersReceived(const QList<UserInfo>& users);
 	void userReceived();
-	void positionsReceived(const QList<QString>& positions);
+	void positionsReceived(const QMap<int, QString>& positions);
 	void imageReceived(const QUrl& url, const QByteArray& byteArray);
 	void noMoreContent();
 
@@ -30,7 +30,6 @@ private slots:
 
 private:
 	QNetworkAccessManager* mNetworkAccessManager = nullptr;
-
 	const QString BaseUrl = "https://frontend-test-assignment-api.abz.agency/api/v1";
 
 };

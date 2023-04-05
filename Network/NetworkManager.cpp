@@ -3,6 +3,9 @@
 #include <QJsonObject>
 #include <QJsonDocument>
 #include <QJsonArray>
+#include <QHttpPart>
+#include <QFile>
+#include <QFileInfo>
 
 NetworkManager::NetworkManager(QObject *parent)
 	: QObject(parent)
@@ -23,9 +26,34 @@ void NetworkManager::getUsers(const int page, const int count)
 	mNetworkAccessManager->get(request);
 }
 
-void NetworkManager::postUsers()
+void NetworkManager::postUser(const QString &token, const QVariantMap &data, const QString &imageFilePath)
 {
+	QNetworkRequest request(QUrl(QString(BaseUrl + "/users")));
+	request.setRawHeader(QString("Token").toUtf8(), token.toUtf8());
 
+	QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
+
+	for(const auto& key : data.keys())
+	{
+		QHttpPart textPart;
+		textPart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"%1\"").arg(key)));
+		textPart.setBody(data[key].toByteArray());
+		multiPart->append(textPart);
+	}
+
+	QHttpPart imagePart;
+	QFile *file = new QFile(imageFilePath);
+	QFileInfo fi(imageFilePath);
+	imagePart.setHeader(QNetworkRequest::ContentDispositionHeader, QVariant(QString("form-data; name=\"photo\"; filename=\"%1\"").arg(fi.fileName())));
+
+	file->open(QIODevice::ReadOnly);
+	imagePart.setBodyDevice(file);
+	file->setParent(multiPart);
+
+	multiPart->append(imagePart);
+
+	auto reply = mNetworkAccessManager->post(request, multiPart);
+	multiPart->setParent(reply);
 }
 
 void NetworkManager::getUser(int id)
@@ -65,10 +93,12 @@ void NetworkManager::onFinishedReading(QNetworkReply *reply)
 			else if(replyJsonInfo.contains("positions"))
 			{
 				QJsonArray positions = replyJsonInfo.value("positions").toArray();
-				QList<QString> positionsList;
+				QMap<int, QString> positionsList;
 				for(const auto& position : positions)
 				{
-					positionsList.append(position.toObject().value("name").toString());
+					auto id = position.toObject().value("id").toInt();
+					auto name = position.toObject().value("name").toString();
+					positionsList.insert(id, name);
 				}
 
 				emit positionsReceived(positionsList);
