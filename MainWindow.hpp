@@ -9,6 +9,7 @@ class QPushButton;
 class QLineEdit;
 class QGroupBox;
 class QRadioButton;
+class QTabWidget;
 
 class MainWindow : public QMainWindow
 {
@@ -21,7 +22,9 @@ public:
 private slots:
 	void onTokenReceived(const QString& token);
 	void onUsersReceived(const QList<UserInfo>& usersList);
+	void onUserReceived(const UserInfo& user);
 	void onPositionsReceived(const QMap<int, QString>& positionsList);
+	void onUserAdded(const int id);
 
 	void onShowMoreClicked();
 	void onUploadClicked();
@@ -46,8 +49,9 @@ private:
 	QRadioButton* mSelectedPosition = nullptr;
 	QLineEdit* mPhotoPathEditor = nullptr;
 	QPushButton* mAddUserButton = nullptr;
+	QTabWidget* mTabs = nullptr;
 
 	const QString InvalidInputStyle = "background-color: rgb(246,152,157)";
-
+	const int UsersPerPage = 6;
 
 };

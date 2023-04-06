@@ -24,7 +24,12 @@ MainWindow::MainWindow(QWidget *parent)
 
 	connect(mNetManager, &NetworkManager::usersReceived, this, &MainWindow::onUsersReceived);
 	connect(mNetManager, &NetworkManager::tokenReceived, this, &MainWindow::onTokenReceived);
-	mNetManager->getUsers(++mCurrentPage);
+	connect(mNetManager, &NetworkManager::userAdded, this, &MainWindow::onUserAdded);
+	connect(mNetManager, &NetworkManager::userReceived, this, &MainWindow::onUserReceived);
+	connect(mNetManager, &NetworkManager::requestError, this, [this](const QString& error){
+		QMessageBox::warning(this, "Request failed", error);
+	});
+	mNetManager->getUsers(++mCurrentPage, UsersPerPage);
 }
 
 MainWindow::~MainWindow()
@@ -57,6 +62,29 @@ void MainWindow::onUsersReceived(const QList<UserInfo> &usersList)
 	}
 }
 
+void MainWindow::onUserReceived(const UserInfo &user)
+{
+	while(mUsersList->count() > UsersPerPage - 1)
+	{
+		auto lastItem = mUsersList->item(mUsersList->count() - 1);
+		mUsersList->removeItemWidget(lastItem);
+		delete lastItem;
+	}
+
+	auto userInfoWidget = new UserInfoWidget(mNetManager, this);
+	userInfoWidget->setInfo(user);
+
+	auto item = new QListWidgetItem();
+	mUsersList->insertItem(0, item);
+	mUsersList->setItemWidget(item, userInfoWidget);
+	item->setSizeHint(userInfoWidget->minimumSizeHint());
+
+	mCurrentPage = 1;
+	mShowMoreButton->setVisible(true);
+	mTabs->setCurrentIndex(0);
+	mUsersList->item(0)->setSelected(true);
+}
+
 void MainWindow::onPositionsReceived(const QMap<int, QString> &positionsList)
 {
 	auto vLayout = new QVBoxLayout();
@@ -77,9 +105,15 @@ void MainWindow::onPositionsReceived(const QMap<int, QString> &positionsList)
 	mPositionList->setLayout(vLayout);
 }
 
+void MainWindow::onUserAdded(const int id)
+{
+	QMessageBox::information(this, tr("Success"), "User successfully added!");
+	mNetManager->getUser(id);
+}
+
 void MainWindow::onShowMoreClicked()
 {
-	mNetManager->getUsers(++mCurrentPage);
+	mNetManager->getUsers(++mCurrentPage, UsersPerPage);
 }
 
 void MainWindow::onUploadClicked()
@@ -108,17 +142,20 @@ void MainWindow::onAddUserClicked()
 void MainWindow::initLayout()
 {
 	auto usersTitleText = new QLabel("Users list", this);
+	usersTitleText->setAlignment(Qt::AlignCenter);
+
 	mUsersList = new QListWidget(this);
 	mShowMoreButton = new QPushButton("Show more", this);
 
 	auto usersTabWidget = new QWidget(this);
 	auto vLayout1 = new QVBoxLayout();
-	vLayout1->addWidget(usersTitleText, Qt::AlignCenter);
+	vLayout1->addWidget(usersTitleText);
 	vLayout1->addWidget(mUsersList);
-	vLayout1->addWidget(mShowMoreButton, Qt::AlignCenter);
+	vLayout1->addWidget(mShowMoreButton);
 	usersTabWidget->setLayout(vLayout1);
 
 	auto addUserTitleText = new QLabel("Add user", this);
+	addUserTitleText->setAlignment(Qt::AlignCenter);
 
 	auto nameLabel = new QLabel("Name", this);
 	mNameEditor = new QLineEdit(this);
@@ -156,7 +193,7 @@ void MainWindow::initLayout()
 
 	auto addUserTab = new QWidget(this);
 	auto vLayout2 = new QVBoxLayout();
-	vLayout2->addWidget(addUserTitleText, Qt::AlignCenter);
+	vLayout2->addWidget(addUserTitleText);
 	vLayout2->addWidget(nameLabel);
 	vLayout2->addWidget(mNameEditor);
 	vLayout2->addWidget(emailLabel);
@@ -167,14 +204,14 @@ void MainWindow::initLayout()
 	vLayout2->addWidget(mPositionList);
 	vLayout2->addWidget(photoLabel);
 	vLayout2->addLayout(uploadLayout);
-	vLayout2->addWidget(mAddUserButton, Qt::AlignCenter);
+	vLayout2->addWidget(mAddUserButton);
 	addUserTab->setLayout(vLayout2);
 
-	auto tabs = new QTabWidget(this);
-	tabs->addTab(usersTabWidget, "Users");
-	tabs->addTab(addUserTab, "Add user");
+	mTabs = new QTabWidget(this);
+	mTabs->addTab(usersTabWidget, "Users");
+	mTabs->addTab(addUserTab, "Add user");
 
-	setCentralWidget(tabs);
+	setCentralWidget(mTabs);
 
 	connect(mShowMoreButton, &QPushButton::clicked, this, &MainWindow::onShowMoreClicked);
 	connect(mNetManager, &NetworkManager::noMoreContent, this, [this]()

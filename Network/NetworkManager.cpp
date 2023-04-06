@@ -22,13 +22,13 @@ void NetworkManager::getToken()
 
 void NetworkManager::getUsers(const int page, const int count)
 {
-	QNetworkRequest request(QUrl(QString(BaseUrl + "/users?page=%1&count=%2").arg(page).arg(count)));
+	QNetworkRequest request(QUrl(QString(BaseUrl + UsersSection + "?page=%1&count=%2").arg(page).arg(count)));
 	mNetworkAccessManager->get(request);
 }
 
 void NetworkManager::postUser(const QString &token, const QVariantMap &data, const QString &imageFilePath)
 {
-	QNetworkRequest request(QUrl(QString(BaseUrl + "/users")));
+	QNetworkRequest request(QUrl(QString(BaseUrl + UsersSection)));
 	request.setRawHeader(QString("Token").toUtf8(), token.toUtf8());
 
 	QHttpMultiPart *multiPart = new QHttpMultiPart(QHttpMultiPart::FormDataType);
@@ -58,7 +58,8 @@ void NetworkManager::postUser(const QString &token, const QVariantMap &data, con
 
 void NetworkManager::getUser(int id)
 {
-
+	QNetworkRequest request(QUrl(QString(BaseUrl + UsersSection + "/%1").arg(id)));
+	mNetworkAccessManager->get(request);
 }
 
 void NetworkManager::getPositions()
@@ -79,6 +80,30 @@ void NetworkManager::onFinishedReading(QNetworkReply *reply)
 	if(reply->error() != QNetworkReply::NoError)
 	{
 		qDebug() << "Error: " << reply->errorString();
+		QString errorDetails;
+		QJsonObject replyJsonInfo = QJsonDocument::fromJson(reply->readAll()).object();
+		if(replyJsonInfo.contains("message"))
+		{
+			errorDetails += replyJsonInfo.value("message").toString();
+		}
+		if(replyJsonInfo.contains("fails"))
+		{
+			errorDetails += ":\n";
+			QJsonObject fails = replyJsonInfo.value("fails").toObject();
+			for(const auto& key : fails.keys())
+			{
+				errorDetails += "- " + key + " (";
+				QJsonArray failDetails = fails.value(key).toArray();
+				for(const auto& failDetail : failDetails)
+				{
+					errorDetails += failDetail.toString() + ", ";
+				}
+				errorDetails.chop(2);
+				errorDetails += ")\n";
+			}
+		}
+
+		emit requestError(errorDetails);
 	}
 	else
 	{
@@ -89,6 +114,14 @@ void NetworkManager::onFinishedReading(QNetworkReply *reply)
 			if(replyJsonInfo.contains("token"))
 			{
 				emit tokenReceived(replyJsonInfo.value("token").toString());
+			}
+			else if(replyJsonInfo.contains("user_id"))
+			{
+				emit userAdded(replyJsonInfo.value("user_id").toInt());
+			}
+			else if(replyJsonInfo.contains("user"))
+			{
+				emit userReceived(UserInfo(replyJsonInfo.value("user").toObject()));
 			}
 			else if(replyJsonInfo.contains("positions"))
 			{

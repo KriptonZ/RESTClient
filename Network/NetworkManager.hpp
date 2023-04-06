@@ -20,10 +20,12 @@ public:
 signals:
 	void tokenReceived(const QString& token);
 	void usersReceived(const QList<UserInfo>& users);
-	void userReceived();
+	void userReceived(const UserInfo& user);
 	void positionsReceived(const QMap<int, QString>& positions);
 	void imageReceived(const QUrl& url, const QByteArray& byteArray);
 	void noMoreContent();
+	void userAdded(const int id);
+	void requestError(const QString& error);
 
 private slots:
 	void onFinishedReading(QNetworkReply *reply);
@@ -31,6 +33,7 @@ private slots:
 private:
 	QNetworkAccessManager* mNetworkAccessManager = nullptr;
 	const QString BaseUrl = "https://frontend-test-assignment-api.abz.agency/api/v1";
+	const QString UsersSection = "/users";
 
 };
 
