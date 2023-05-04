@@ -80,7 +80,7 @@ void NetworkManager::onFinishedReading(QNetworkReply *reply)
 	if(reply->error() != QNetworkReply::NoError)
 	{
 		qDebug() << "Error: " << reply->errorString();
-		QString errorDetails;
+		QString errorDetails = reply->errorString() + "\n";
 		QJsonObject replyJsonInfo = QJsonDocument::fromJson(reply->readAll()).object();
 		if(replyJsonInfo.contains("message"))
 		{
